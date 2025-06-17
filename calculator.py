@@ -12,6 +12,7 @@ from kivy.uix.recycleboxlayout import RecycleBoxLayout
 from kivy.properties import ObjectProperty, ListProperty, StringProperty
 from kivy.core.text import LabelBase, DEFAULT_FONT
 from functools import partial
+import yaml
 from calculator_logic import (
     calculate_all_attributes,
     human_sects,
@@ -328,15 +329,7 @@ class CalculatorApp(App):
             )
 
             # 格式化输出文本
-            output = f"门派: {results['门派']}\n"
-            output += f"种族: {results['种族']}\n"
-            output += "\n计算结果:\n"
-            output += f"  伤害: {results['实际伤害']:.0f}\n"
-            output += f"  法伤: {results['实际法伤']:.0f}\n"
-            output += f"  固伤: {results['固伤']:.0f}\n"
-            output += "  属性加成:\n"
-            for attr, value in results["属性加成"].items():
-                output += f"    {attr}: {value:.0f}\n"
+            output = yaml.dump(results, allow_unicode=True, indent=2, sort_keys=False)
 
             self.output_text = output
             self.output_label.text = self.output_text

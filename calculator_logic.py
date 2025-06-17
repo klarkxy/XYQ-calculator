@@ -186,73 +186,25 @@ def calculate_all_attributes(sect, 命中, 伤害, 力量, 耐力, 敏捷, 体�
         "固伤": fixed_damage,
     }
 
+    # 递归删除结果中所有的0属性
+    def remove_zero_attributes(data):
+        if not isinstance(data, dict):
+            return data
+
+        cleaned_data = {}
+        for key, value in data.items():
+            if isinstance(value, dict):
+                processed_value = remove_zero_attributes(value)
+                if len(processed_value) > 0:
+                    cleaned_data[key] = processed_value
+            elif isinstance(value, (int, float)):
+                if value != 0:
+                    cleaned_data[key] = value
+            else:
+                cleaned_data[key] = value
+
+        return cleaned_data
+
+    results = remove_zero_attributes(results)
+
     return results
-
-
-# 主函数或示例用法
-if __name__ == "__main__":
-    # 示例：计算一个仙族角色的属性加成和伤害
-    race = "仙族"
-    体质_example = 50
-    魔力_example = 30
-    力量_example = 100
-    耐力_example = 20
-    敏捷_example = 50
-
-    attribute_bonus = calculate_attribute_bonus(
-        race, 体质_example, 魔力_example, 力量_example, 耐力_example, 敏捷_example
-    )
-    print(f"{race} 属性加成：{attribute_bonus}")
-
-    # 假设武器属性和力量带来的伤害
-    weapon_命中_example = 500
-    weapon_伤害_example = 600
-    strength_伤害_example = attribute_bonus["伤害"]  # 使用属性加成中的伤害
-
-    actual_damage = calculate_actual_damage(
-        weapon_命中_example, weapon_伤害_example, strength_伤害_example
-    )
-    print(f"实际伤害：{actual_damage}")
-
-    spirit_power_example = attribute_bonus["灵力"]  # 使用属性加成中的灵力
-    actual_spell_damage = calculate_actual_spell_damage(
-        weapon_伤害_example, spirit_power_example
-    )
-    print(f"实际法伤：{actual_spell_damage}")
-
-    # 示例：计算女儿村的固伤
-    sect = "女儿村"
-    fixed_damage_nv = calculate_fixed_damage(
-        sect, weapon_伤害_example, 敏捷_example, actual_damage
-    )
-    print(f"{sect} 固伤：{fixed_damage_nv}")
-
-    # 示例：计算盘丝洞的固伤
-    sect = "盘丝洞"
-    fixed_damage_ps = calculate_fixed_damage(
-        sect, weapon_伤害_example, 敏捷_example, actual_damage
-    )
-    print(f"{sect} 固伤：{fixed_damage_ps}")
-
-    # 示例：使用总入口函数计算
-    sect_example = "大唐官府"
-    命中_example = 800
-    伤害_example = 700
-    力量_example = 150
-    耐力_example = 50
-    敏捷_example = 80
-    体质_example = 100
-    魔力_example = 20
-
-    all_results = calculate_all_attributes(
-        sect_example,
-        命中_example,
-        伤害_example,
-        力量_example,
-        耐力_example,
-        敏捷_example,
-        体质_example,
-        魔力_example,
-    )
-    print("\n总计算结果:")
-    print(all_results)

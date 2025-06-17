@@ -21,6 +21,16 @@ from calculator_logic import (
 # 注册自定义字体
 LabelBase.register(DEFAULT_FONT, fn_regular="sarasa-mono-sc-nerd-regular.ttf")
 
+attribute_map = {
+    "命中": "hit",
+    "伤害": "damage",
+    "体质": "constitution",
+    "魔力": "magic",
+    "力量": "strength",
+    "耐力": "endurance",
+    "敏捷": "agility",
+}
+
 
 class WeaponData:
     """
@@ -62,19 +72,20 @@ class WeaponData:
         """
         生成武器名称。
         """
-        attribute_map = {
+        name = "命中+" + str(self.hit) + " 伤害+" + str(self.damage) + " "
+        # Add other non-zero attributes to the name
+        attrs = {
             "体质": self.constitution,
             "魔力": self.magic,
             "力量": self.strength,
             "耐力": self.endurance,
             "敏捷": self.agility,
         }
-        name = "命中+" + str(self.hit) + " 伤害+" + str(self.damage) + " "
-        name += " ".join(
-            f"{chinese_attr}{'+' if value > 0 else ''}{value}"
-            for chinese_attr, value in attribute_map.items()
-            if value != 0
-        )
+        for attr_name, attr_value in attrs.items():
+            if attr_value > 0:
+                name += attr_name + "+" + str(attr_value) + " "
+            elif attr_value < 0:
+                name += attr_name + str(attr_value) + " "
         return name
 
 
@@ -293,15 +304,7 @@ class CalculatorApp(App):
         """
         # 根据当前武器数据更新表单输入
         if self.current_weapon:
-            attribute_map = {
-                "命中": "hit",
-                "伤害": "damage",
-                "体质": "constitution",
-                "魔力": "magic",
-                "力量": "strength",
-                "耐力": "endurance",
-                "敏捷": "agility",
-            }
+
             for chinese_attr, input_widget in self.attribute_inputs.items():
                 english_attr = attribute_map.get(chinese_attr)
                 if english_attr:

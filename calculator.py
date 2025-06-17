@@ -66,13 +66,12 @@ class WeaponData:
         self.strength = strength
         self.endurance = endurance
         self.agility = agility
-        self.name = self.generate_name()  # 生成武器名称
 
-    def generate_name(self):
+    def name(self):
         """
         生成武器名称。
         """
-        name = "命中+" + str(self.hit) + " 伤害+" + str(self.damage) + " "
+        name = f"命中+{self.hit:.0f} 伤害+{self.damage:.0f} "
         # Add other non-zero attributes to the name
         attrs = {
             "体质": self.constitution,
@@ -83,9 +82,9 @@ class WeaponData:
         }
         for attr_name, attr_value in attrs.items():
             if attr_value > 0:
-                name += attr_name + "+" + str(attr_value) + " "
+                name += f"{attr_name}+{attr_value:.0f} "
             elif attr_value < 0:
-                name += attr_name + str(attr_value) + " "
+                name += f"{attr_name}{attr_value:.0f} "
         return name
 
 
@@ -169,6 +168,7 @@ class CalculatorApp(App):
             default_size_hint=(1, None),
             default_size=(None, 40),
         )
+        recycle_box_layout.bind(minimum_height=recycle_box_layout.setter("height"))
         self.weapon_recycleview.add_widget(recycle_box_layout)
         self.weapon_recycleview.viewclass = "Button"
         self.update_weapon_list_view()
@@ -291,8 +291,6 @@ class CalculatorApp(App):
             except ValueError:
                 pass  # 如有必要，处理非数字输入
 
-        # 更新武器名称
-        self.current_weapon.generate_name()
         # 重新计算等效伤害
         self.calculate_equivalent_damage()
         # 更新列表视图
@@ -310,7 +308,6 @@ class CalculatorApp(App):
                 if english_attr:
                     input_widget.text = str(getattr(self.current_weapon, english_attr))
 
-            self.current_weapon.generate_name()  # 更新武器名称
             self.update_weapon_list_view()
             self.calculate_equivalent_damage()
 
@@ -339,12 +336,12 @@ class CalculatorApp(App):
             output = f"门派: {results['门派']}\n"
             output += f"种族: {results['种族']}\n"
             output += "\n计算结果:\n"
-            output += f"  伤害: {results['实际伤害']:.2f}\n"
-            output += f"  法伤: {results['实际法伤']:.2f}\n"
-            output += f"  固伤: {results['固伤']:.2f}\n"
+            output += f"  伤害: {results['实际伤害']:.0f}\n"
+            output += f"  法伤: {results['实际法伤']:.0f}\n"
+            output += f"  固伤: {results['固伤']:.0f}\n"
             output += "  属性加成:\n"
             for attr, value in results["属性加成"].items():
-                output += f"    {attr}: {value:.2f}\n"
+                output += f"    {attr}: {value:.0f}\n"
 
             self.output_text = output
             self.output_label.text = self.output_text
@@ -360,7 +357,7 @@ class CalculatorApp(App):
         self.weapon_recycleview.viewclass = "Button"
         self.weapon_recycleview.data = [
             {
-                "text": x.name,
+                "text": x.name(),
                 "font_name": DEFAULT_FONT,
                 "on_release": lambda instance, idx=i: self._on_weapon_item_release(
                     instance, idx

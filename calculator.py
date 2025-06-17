@@ -11,6 +11,7 @@ from kivy.uix.recycleview import RecycleView
 from kivy.uix.recycleboxlayout import RecycleBoxLayout
 from kivy.properties import ObjectProperty, ListProperty, StringProperty
 from kivy.core.text import LabelBase, DEFAULT_FONT
+from functools import partial
 from calculator_logic import (
     calculate_all_attributes,
     human_sects,
@@ -212,14 +213,6 @@ class CalculatorApp(App):
 
         return main_layout
 
-    def _on_weapon_item_release(self, instance, idx):
-        """
-        处理武器列表项点击事件。
-        """
-        self.start_change_weapon = True
-        self.select_weapon(idx)
-        self.start_change_weapon = False
-
     def select_weapon(self, idx):
         """
         选择指定索引的武器。
@@ -306,7 +299,9 @@ class CalculatorApp(App):
             for chinese_attr, input_widget in self.attribute_inputs.items():
                 english_attr = attribute_map.get(chinese_attr)
                 if english_attr:
-                    input_widget.text = str(getattr(self.current_weapon, english_attr))
+                    input_widget.text = str(
+                        int(getattr(self.current_weapon, english_attr))
+                    )
 
             self.update_weapon_list_view()
             self.calculate_equivalent_damage()
@@ -348,23 +343,31 @@ class CalculatorApp(App):
         else:
             # 如果未选择门派或武器，显示提示信息
             self.output_text = "请选择门派并输入武器属性进行计算。"
-            self.output_label.text = self.output_text
+        self.output_label.text = self.output_text
+
+    def on_weapon_list_button_release(self, idx):
+        """
+        处理武器列表项点击事件（修正版）。
+        """
+        self.start_change_weapon = True
+        self.select_weapon(idx)  # 直接使用传递的 idx
+        self.start_change_weapon = False
 
     def update_weapon_list_view(self):
         """
         更新武器列表视图。
         """
         self.weapon_recycleview.viewclass = "Button"
-        self.weapon_recycleview.data = [
-            {
+        data = []
+
+        for i, x in enumerate(self.weapon_list):
+            item = {
                 "text": x.name(),
                 "font_name": DEFAULT_FONT,
-                "on_release": lambda instance, idx=i: self._on_weapon_item_release(
-                    instance, idx
-                ),
+                "on_release": lambda idx=i: self.on_weapon_list_button_release(idx),
             }
-            for i, x in enumerate(self.weapon_list)
-        ]
+            data.append(item)
+        self.weapon_recycleview.data = data
 
 
 if __name__ == "__main__":

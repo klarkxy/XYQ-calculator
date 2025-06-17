@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 import kivy
 from kivy.app import App
+from kivy.uix.gridlayout import GridLayout
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.uix.spinner import Spinner
 from kivy.uix.textinput import TextInput
 from kivy.uix.recycleview import RecycleView
+from kivy.uix.recycleboxlayout import RecycleBoxLayout
 from kivy.properties import ObjectProperty, ListProperty, StringProperty
 from kivy.core.text import LabelBase, DEFAULT_FONT
 from calculator_logic import (
@@ -67,6 +69,7 @@ class CalculatorApp(App):
     weapon_list = ListProperty([])  # 武器列表
     current_weapon = ObjectProperty(None)  # 当前选中的武器
     output_text = StringProperty("")  # 计算结果输出文本
+    selected_faction = StringProperty(None, allow_none=True)  # 当前选中的门派
 
     def build(self):
         """
@@ -79,26 +82,42 @@ class CalculatorApp(App):
         # 主布局
         main_layout = BoxLayout(orientation="vertical")
 
-        # 顶部区域：门派选择和添加按钮
-        top_layout = BoxLayout(size_hint_y=0.1)
-        factions = human_sects + demon_sects + immortal_sects
-        self.faction_spinner = Spinner(
-            text="选择门派",
-            values=factions,
-            size_hint=(0.5, None),
-            height=40,
-            font_name=DEFAULT_FONT,
-        )
-        # 绑定门派选择事件
-        self.faction_spinner.bind(text=self.on_faction_select)
-        faction_layout = BoxLayout(
-            orientation="horizontal", size_hint_y=None, height=40
-        )
-        faction_layout.add_widget(self.faction_spinner)
+        # 顶部区域：门派选择（按种族分组，3列）
+
+        faction_layout = BoxLayout(orientation="vertical", size_hint_y=0.2)
+
+        # 使用 GridLayout 实现三列布局
+        grid_layout = GridLayout(cols=3, size_hint_y=1)
+
+        # 添加人族门派
+        grid_layout.add_widget(Label(text="人族", font_name=DEFAULT_FONT))
+        grid_layout.add_widget(Label(text="魔族", font_name=DEFAULT_FONT))
+        grid_layout.add_widget(Label(text="仙族", font_name=DEFAULT_FONT))
+
+        # 添加门派按钮
+        all_sects = [human_sects, demon_sects, immortal_sects]
+        self.faction_buttons = {}  # 存储门派按钮
+        for i in range(max(len(human_sects), len(demon_sects), len(immortal_sects))):
+            for j, sects in enumerate(all_sects):
+                if i < len(sects):
+                    sect_name = sects[i]
+                    btn = Button(text=sect_name, font_name=DEFAULT_FONT)
+                    btn.bind(on_press=self.on_faction_button_press)
+                    self.faction_buttons[sect_name] = btn
+                    grid_layout.add_widget(btn)
+                else:
+                    # 添加一个空的部件以保持列对齐
+                    grid_layout.add_widget(Label())
+
+        faction_layout.add_widget(grid_layout)
         main_layout.add_widget(faction_layout)
 
+        # 分隔线
+        separator = BoxLayout(size_hint_y=None, height=5)
+        main_layout.add_widget(separator)
+
         # 底部区域：列表、表单、输出
-        bottom_layout = BoxLayout(orientation="horizontal", size_hint_y=1)
+        bottom_layout = BoxLayout(orientation="horizontal", size_hint_y=0.8)
 
         # 左侧区域：武器列表
         left_layout = BoxLayout(orientation="vertical", size_hint_x=0.3, size_hint_y=1)
@@ -108,20 +127,51 @@ class CalculatorApp(App):
         # 绑定新增武器按钮事件
         add_button.bind(on_press=self.add_weapon)
         left_layout.add_widget(add_button)
-        left_layout.add_widget(Label(text="武器列表", font_name=DEFAULT_FONT))
-        # RecycleView 的占位符，用于显示武器列表
+        # 创建一个可滚动的武器列表
         self.weapon_recycleview = RecycleView(
-            data=[{"text": x.name, "font_name": DEFAULT_FONT} for x in self.weapon_list]
+            scroll_type=["bars", "content"],
+            bar_width=10,
+            scroll_wheel_distance=20,
         )
+        # 创建 RecycleBoxLayout 作为布局管理器并添加为子部件
+        recycle_box_layout = RecycleBoxLayout(
+            orientation="vertical",
+            size_hint_y=None,
+            default_size_hint=(1, None),
+            default_size=(None, 40),
+        )
+        self.weapon_recycleview.add_widget(recycle_box_layout)
         self.weapon_recycleview.viewclass = "Button"
-        # 简单的绑定，用于选择武器
-        self.weapon_recycleview.bind(on_touch_down=self.on_weapon_select)
+        self.weapon_recycleview.data = [
+            {
+                "text": x.name,
+                "font_name": DEFAULT_FONT,
+                "on_release": lambda instance, idx=i: self.select_weapon(idx),
+            }
+            for i, x in enumerate(self.weapon_list)
+        ]
+
         left_layout.add_widget(self.weapon_recycleview)
         bottom_layout.add_widget(left_layout)
 
         # 中间区域：属性表单
         middle_layout = BoxLayout(orientation="vertical", size_hint_x=0.4)
-        middle_layout.add_widget(Label(text="武器属性", font_name=DEFAULT_FONT))
+
+        # 添加武器名称输入框
+        name_layout = BoxLayout(size_hint_y=0.1)
+        name_layout.add_widget(
+            Label(text="武器名称", size_hint_x=0.4, font_name=DEFAULT_FONT)
+        )
+        self.name_input = TextInput(
+            multiline=False,
+            size_hint_x=0.6,
+            font_name=DEFAULT_FONT,
+        )
+        # 绑定武器名称输入框文本变化事件
+        self.name_input.bind(text=self.on_name_change)
+        name_layout.add_widget(self.name_input)
+        middle_layout.add_widget(name_layout)
+
         self.attribute_inputs = {}  # 存储属性输入框
         attributes = ["命中", "伤害", "体质", "魔力", "力量", "耐力", "敏捷"]
         for attr in attributes:
@@ -144,7 +194,6 @@ class CalculatorApp(App):
 
         # 右侧区域：输出
         right_layout = BoxLayout(orientation="vertical", size_hint_x=0.3)
-        right_layout.add_widget(Label(text="计算结果", font_name=DEFAULT_FONT))
         self.output_label = Label(text=self.output_text, font_name=DEFAULT_FONT)
         right_layout.add_widget(self.output_label)
         bottom_layout.add_widget(right_layout)
@@ -157,10 +206,27 @@ class CalculatorApp(App):
 
         return main_layout
 
-    def on_faction_select(self, instance, value):
+    def on_name_change(self, instance, value):
         """
-        处理门派选择事件。
+        处理武器名称输入框文本变化事件。
         """
+        if self.current_weapon:
+            self.current_weapon.name = value
+            # 更新 RecycleView 数据以反映名称变化
+            self.weapon_recycleview.data = [
+                {"text": x.name, "font_name": DEFAULT_FONT} for x in self.weapon_list
+            ]
+        self.calculate_equivalent_damage()
+
+    def on_faction_button_press(self, instance):
+        """
+        处理门派按钮点击事件。
+        """
+        # 获取被点击按钮的文本（门派名称）
+        faction = instance.text
+        # 更新当前选中的门派
+        self.selected_faction = faction
+        # 更新计算结果
         self.calculate_equivalent_damage()
 
     def add_weapon(self, instance):
@@ -180,30 +246,6 @@ class CalculatorApp(App):
         # 更新表单和计算结果
         self.update_form()
         self.calculate_equivalent_damage()
-
-    def on_weapon_select(self, instance, touch):
-        """
-        处理武器列表选择事件。
-        """
-        # RecycleView 的简单选择逻辑
-        if instance.collide_point(*touch.pos):
-            for index, item in enumerate(self.weapon_recycleview.data):
-                # 检查触摸是否在列表项的边界内
-                if (
-                    self.weapon_recycleview.children
-                    and self.weapon_recycleview.children[0].children
-                ):
-                    list_item_widgets = self.weapon_recycleview.children[0].children
-                    # RecycleView 项从底部向上添加，因此反转索引
-                    widget_index = len(list_item_widgets) - 1 - index
-                    if 0 <= widget_index < len(list_item_widgets):
-                        if list_item_widgets[widget_index].collide_point(*touch.pos):
-                            # 设置当前武器为选中的武器
-                            self.current_weapon = self.weapon_list[index]
-                            # 更新表单和计算结果
-                            self.update_form()
-                            self.calculate_equivalent_damage()
-                            break
 
     def on_attribute_change(self, instance, value):
         """
@@ -248,6 +290,7 @@ class CalculatorApp(App):
         """
         # 根据当前武器数据更新表单输入
         if self.current_weapon:
+            self.name_input.text = self.current_weapon.name
             for chinese_attr, input_widget in self.attribute_inputs.items():
                 # 将中文属性名映射到英文变量名以获取属性值
                 english_attr = {
@@ -263,12 +306,15 @@ class CalculatorApp(App):
                 )  # 如果找不到映射，使用原中文名（应避免）
                 input_widget.text = str(getattr(self.current_weapon, english_attr))
 
-    def calculate_equivalent_damage(self):
+    def calculate_equivalent_damage(self, faction=None):
         """
         计算武器的等效伤害并更新输出。
         """
-        if self.current_weapon and self.faction_spinner.text != "选择门派":
-            faction = self.faction_spinner.text
+        # 如果没有传入门派，使用当前选中的门派
+        if faction is None:
+            faction = self.selected_faction
+
+        if self.current_weapon and faction:
             # 调用 calculator_logic 中的函数进行计算
             results = calculate_all_attributes(
                 faction,

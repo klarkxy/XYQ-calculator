@@ -59,7 +59,7 @@ def get_race_by_sect(sect):
 
 
 # 计算属性加成
-def calculate_attribute_bonus(race, constitution, magic, strength, endurance, agility):
+def calculate_attribute_bonus(race, 体质, 魔力, 力量, 耐力, 敏捷):
     """
     根据种族和属性点计算各项属性加成。
     返回一个字典，包含气血、魔法、命中、伤害、防御、速度、躲避、灵力等属性的加成。
@@ -78,52 +78,52 @@ def calculate_attribute_bonus(race, constitution, magic, strength, endurance, ag
 
     # 根据体质属性计算加成
     if "体质" in growth:
-        bonus["气血"] += constitution * growth["体质"].get("气血", 0)
-        bonus["速度"] += constitution * growth["体质"].get("速度", 0)
-        bonus["灵力"] += constitution * growth["体质"].get("灵力", 0)
+        bonus["气血"] += 体质 * growth["体质"].get("气血", 0)
+        bonus["速度"] += 体质 * growth["体质"].get("速度", 0)
+        bonus["灵力"] += 体质 * growth["体质"].get("灵力", 0)
     # 根据魔力属性计算加成
     if "魔力" in growth:
-        bonus["魔法"] += magic * growth["魔力"].get("魔法", 0)
-        bonus["灵力"] += magic * growth["魔力"].get("灵力", 0)
+        bonus["魔法"] += 魔力 * growth["魔力"].get("魔法", 0)
+        bonus["灵力"] += 魔力 * growth["魔力"].get("灵力", 0)
     # 根据力量属性计算加成
     if "力量" in growth:
-        bonus["命中"] += strength * growth["力量"].get("命中", 0)
-        bonus["伤害"] += strength * growth["力量"].get("伤害", 0)
-        bonus["速度"] += strength * growth["力量"].get("速度", 0)
-        bonus["灵力"] += strength * growth["力量"].get("灵力", 0)
+        bonus["命中"] += 力量 * growth["力量"].get("命中", 0)
+        bonus["伤害"] += 力量 * growth["力量"].get("伤害", 0)
+        bonus["速度"] += 力量 * growth["力量"].get("速度", 0)
+        bonus["灵力"] += 力量 * growth["力量"].get("灵力", 0)
     # 根据耐力属性计算加成
     if "耐力" in growth:
-        bonus["防御"] += endurance * growth["耐力"].get("防御", 0)
-        bonus["速度"] += endurance * growth["耐力"].get("速度", 0)
-        bonus["灵力"] += endurance * growth["耐力"].get("灵力", 0)
+        bonus["防御"] += 耐力 * growth["耐力"].get("防御", 0)
+        bonus["速度"] += 耐力 * growth["耐力"].get("速度", 0)
+        bonus["灵力"] += 耐力 * growth["耐力"].get("灵力", 0)
     # 根据敏捷属性计算加成
     if "敏捷" in growth:
-        bonus["速度"] += agility * growth["敏捷"].get("速度", 0)
-        bonus["躲避"] += agility * growth["敏捷"].get("躲避", 0)
+        bonus["速度"] += 敏捷 * growth["敏捷"].get("速度", 0)
+        bonus["躲避"] += 敏捷 * growth["敏捷"].get("躲避", 0)
 
     return bonus
 
 
 # 计算实际伤害
-def calculate_actual_damage(weapon_hit, weapon_damage, strength_damage):
+def calculate_actual_damage(weapon_命中, weapon_伤害, strength_伤害):
     """
     计算实际伤害。
     公式：武器命中/3 + 武器伤害 + 力量伤害
     """
-    return weapon_hit / 3 + weapon_damage + strength_damage
+    return weapon_命中 / 3 + weapon_伤害 + strength_伤害
 
 
 # 计算实际法伤
-def calculate_actual_spell_damage(weapon_damage, spirit_power):
+def calculate_actual_spell_damage(weapon_伤害, spirit_power):
     """
     计算实际法伤。
     公式：武器伤害/4 + 属性带来的灵力
     """
-    return weapon_damage / 4 + spirit_power
+    return weapon_伤害 / 4 + spirit_power
 
 
 # 计算固伤
-def calculate_fixed_damage(sect, weapon_damage, agility, actual_damage):
+def calculate_fixed_damage(sect, weapon_伤害, 敏捷, actual_damage):
     """
     计算固伤。
     根据门派和公式计算固伤。
@@ -131,54 +131,50 @@ def calculate_fixed_damage(sect, weapon_damage, agility, actual_damage):
     fixed_damage = 0
     # 女儿村固伤计算
     if sect == "女儿村":
-        fixed_damage = weapon_damage * 0.18 + agility * 0.5
+        fixed_damage = weapon_伤害 * 0.18 + 敏捷 * 0.5
     # 无底洞固伤计算
     elif sect == "无底洞":
-        fixed_damage = weapon_damage * 0.125 * 2 + agility * 0.7
+        fixed_damage = weapon_伤害 * 0.125 * 2 + 敏捷 * 0.7
     # 阴曹地府固伤计算
     elif sect == "阴曹地府":
-        fixed_damage = weapon_damage * 0.15 + agility * 0.35
+        fixed_damage = weapon_伤害 * 0.15 + 敏捷 * 0.35
     # 普陀山固伤计算
     elif sect == "普陀山":
-        fixed_damage = weapon_damage * 0.24 + agility * 0.7
+        fixed_damage = weapon_伤害 * 0.24 + 敏捷 * 0.7
     # 盘丝洞固伤计算
     elif sect == "盘丝洞":
-        fixed_damage = weapon_damage * 0.18 + actual_damage / 3
+        fixed_damage = weapon_伤害 * 0.18 + actual_damage / 3
     # 天机城固伤计算
     elif sect == "天机城":
-        fixed_damage = weapon_damage * 0.18 + actual_damage / 3
+        fixed_damage = weapon_伤害 * 0.18 + actual_damage / 3
     return fixed_damage
 
 
-def calculate_all_attributes(
-    sect, hit, damage, strength, endurance, agility, constitution, magic
-):
+def calculate_all_attributes(sect, 命中, 伤害, 力量, 耐力, 敏捷, 体质, 魔力):
     """
     总入口函数，计算所有相关属性和伤害，并返回一个字典。
     参数:
         sect (str): 门派
-        hit (float): 命中
-        damage (float): 伤害
-        strength (float): 力量
-        endurance (float): 耐力
-        agility (float): 敏捷
-        constitution (float): 体质
-        magic (float): 魔力
+        命中 (float): 命中
+        伤害 (float): 伤害
+        力量 (float): 力量
+        耐力 (float): 耐力
+        敏捷 (float): 敏捷
+        体质 (float): 体质
+        魔力 (float): 魔力
     返回:
         dict: 包含计算结果的字典
     """
     # 根据门派获取种族
     race = get_race_by_sect(sect)
     # 计算属性加成
-    attribute_bonus = calculate_attribute_bonus(
-        race, constitution, magic, strength, endurance, agility
-    )
+    attribute_bonus = calculate_attribute_bonus(race, 体质, 魔力, 力量, 耐力, 敏捷)
     # 计算实际伤害
-    actual_damage = calculate_actual_damage(hit, damage, attribute_bonus["伤害"])
+    actual_damage = calculate_actual_damage(命中, 伤害, attribute_bonus["伤害"])
     # 计算实际法伤
-    actual_spell_damage = calculate_actual_spell_damage(damage, attribute_bonus["灵力"])
+    actual_spell_damage = calculate_actual_spell_damage(伤害, attribute_bonus["灵力"])
     # 计算固伤
-    fixed_damage = calculate_fixed_damage(sect, damage, agility, actual_damage)
+    fixed_damage = calculate_fixed_damage(sect, 伤害, 敏捷, actual_damage)
 
     # 组织计算结果
     results = {
@@ -197,62 +193,66 @@ def calculate_all_attributes(
 if __name__ == "__main__":
     # 示例：计算一个仙族角色的属性加成和伤害
     race = "仙族"
-    constitution = 50
-    magic = 30
-    strength = 100
-    endurance = 20
-    agility = 50
+    体质_example = 50
+    魔力_example = 30
+    力量_example = 100
+    耐力_example = 20
+    敏捷_example = 50
 
     attribute_bonus = calculate_attribute_bonus(
-        race, constitution, magic, strength, endurance, agility
+        race, 体质_example, 魔力_example, 力量_example, 耐力_example, 敏捷_example
     )
     print(f"{race} 属性加成：{attribute_bonus}")
 
     # 假设武器属性和力量带来的伤害
-    weapon_hit = 500
-    weapon_damage = 600
-    strength_damage = attribute_bonus["伤害"]  # 使用属性加成中的伤害
+    weapon_命中_example = 500
+    weapon_伤害_example = 600
+    strength_伤害_example = attribute_bonus["伤害"]  # 使用属性加成中的伤害
 
-    actual_damage = calculate_actual_damage(weapon_hit, weapon_damage, strength_damage)
+    actual_damage = calculate_actual_damage(
+        weapon_命中_example, weapon_伤害_example, strength_伤害_example
+    )
     print(f"实际伤害：{actual_damage}")
 
-    spirit_power = attribute_bonus["灵力"]  # 使用属性加成中的灵力
-    actual_spell_damage = calculate_actual_spell_damage(weapon_damage, spirit_power)
+    spirit_power_example = attribute_bonus["灵力"]  # 使用属性加成中的灵力
+    actual_spell_damage = calculate_actual_spell_damage(
+        weapon_伤害_example, spirit_power_example
+    )
     print(f"实际法伤：{actual_spell_damage}")
 
     # 示例：计算女儿村的固伤
     sect = "女儿村"
     fixed_damage_nv = calculate_fixed_damage(
-        sect, weapon_damage, agility, actual_damage
+        sect, weapon_伤害_example, 敏捷_example, actual_damage
     )
     print(f"{sect} 固伤：{fixed_damage_nv}")
 
     # 示例：计算盘丝洞的固伤
     sect = "盘丝洞"
     fixed_damage_ps = calculate_fixed_damage(
-        sect, weapon_damage, agility, actual_damage
+        sect, weapon_伤害_example, 敏捷_example, actual_damage
     )
     print(f"{sect} 固伤：{fixed_damage_ps}")
 
     # 示例：使用总入口函数计算
     sect_example = "大唐官府"
-    hit_example = 800
-    damage_example = 700
-    strength_example = 150
-    endurance_example = 50
-    agility_example = 80
-    constitution_example = 100
-    magic_example = 20
+    命中_example = 800
+    伤害_example = 700
+    力量_example = 150
+    耐力_example = 50
+    敏捷_example = 80
+    体质_example = 100
+    魔力_example = 20
 
     all_results = calculate_all_attributes(
         sect_example,
-        hit_example,
-        damage_example,
-        strength_example,
-        endurance_example,
-        agility_example,
-        constitution_example,
-        magic_example,
+        命中_example,
+        伤害_example,
+        力量_example,
+        耐力_example,
+        敏捷_example,
+        体质_example,
+        魔力_example,
     )
     print("\n总计算结果:")
     print(all_results)

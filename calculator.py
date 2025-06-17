@@ -62,7 +62,7 @@ class WeaponData:
         """
         生成武器名称。
         """
-        attributes = {
+        attribute_map = {
             "体质": self.constitution,
             "魔力": self.magic,
             "力量": self.strength,
@@ -72,7 +72,7 @@ class WeaponData:
         name = "命中+" + str(self.hit) + " 伤害+" + str(self.damage) + " "
         name += " ".join(
             f"{chinese_attr}{'+' if value > 0 else ''}{value}"
-            for chinese_attr, value in attributes.items()
+            for chinese_attr, value in attribute_map.items()
             if value != 0
         )
         return name
@@ -160,16 +160,7 @@ class CalculatorApp(App):
         )
         self.weapon_recycleview.add_widget(recycle_box_layout)
         self.weapon_recycleview.viewclass = "Button"
-        self.weapon_recycleview.data = [
-            {
-                "text": x.name,
-                "font_name": DEFAULT_FONT,
-                "on_release": lambda instance, idx=i: self._on_weapon_item_release(
-                    instance, idx
-                ),
-            }
-            for i, x in enumerate(self.weapon_list)
-        ]
+        self.update_weapon_list_view()
 
         left_layout.add_widget(self.weapon_recycleview)
         bottom_layout.add_widget(left_layout)
@@ -207,7 +198,6 @@ class CalculatorApp(App):
 
         # 初始化时更新表单和计算结果
         self.update_form()
-        self.calculate_equivalent_damage()
 
         return main_layout
 
@@ -229,7 +219,6 @@ class CalculatorApp(App):
         if 0 <= idx < len(self.weapon_list):
             self.current_weapon = self.weapon_list[idx]
             self.update_form()
-            self.calculate_equivalent_damage()
 
     def on_faction_button_press(self, instance):
         """
@@ -250,17 +239,7 @@ class CalculatorApp(App):
         new_weapon = WeaponData()
         self.weapon_list.append(new_weapon)
         # 更新 RecycleView 数据
-        self.weapon_recycleview.viewclass = "Button"
-        self.weapon_recycleview.data = [
-            {
-                "text": x.name,
-                "font_name": DEFAULT_FONT,
-                "on_release": lambda instance, idx=i: self._on_weapon_item_release(
-                    instance, idx
-                ),
-            }
-            for i, x in enumerate(self.weapon_list)
-        ]
+        self.update_weapon_list_view()
         # 设置当前武器为新添加的武器
         self.current_weapon = new_weapon
         # 更新表单和计算结果
@@ -282,37 +261,7 @@ class CalculatorApp(App):
         if chinese_attr:
             try:
                 # 使用 setattr 更新武器属性
-                setattr(
-                    self.current_weapon,
-                    # 将中文属性名映射到英文变量名
-                    {
-                        "命中": "hit",
-                        "伤害": "damage",
-                        "体质": "constitution",
-                        "魔力": "magic",
-                        "力量": "strength",
-                        "耐力": "endurance",
-                        "敏捷": "agility",
-                    }.get(
-                        chinese_attr, chinese_attr
-                    ),  # 如果找不到映射，使用原中文名（应避免）
-                    float(value) if value else 0,
-                )
-            except ValueError:
-                pass  # 如有必要，处理非数字输入
-
-        # 重新计算等效伤害
-        self.calculate_equivalent_damage()
-
-    def update_form(self):
-        """
-        根据当前武器数据更新表单输入框。
-        """
-        # 根据当前武器数据更新表单输入
-        if self.current_weapon:
-            for chinese_attr, input_widget in self.attribute_inputs.items():
-                # 将中文属性名映射到英文变量名以获取属性值
-                english_attr = {
+                attribute_map = {
                     "命中": "hit",
                     "伤害": "damage",
                     "体质": "constitution",
@@ -320,10 +269,47 @@ class CalculatorApp(App):
                     "力量": "strength",
                     "耐力": "endurance",
                     "敏捷": "agility",
-                }.get(
-                    chinese_attr, chinese_attr
-                )  # 如果找不到映射，使用原中文名（应避免）
-                input_widget.text = str(getattr(self.current_weapon, english_attr))
+                }
+                english_attr = attribute_map.get(chinese_attr)
+                if english_attr:
+                    setattr(
+                        self.current_weapon,
+                        english_attr,
+                        float(value) if value else 0,
+                    )
+            except ValueError:
+                pass  # 如有必要，处理非数字输入
+
+        # 更新武器名称
+        self.current_weapon.generate_name()
+        # 重新计算等效伤害
+        self.calculate_equivalent_damage()
+        # 更新列表视图
+        self.update_weapon_list_view()
+
+    def update_form(self):
+        """
+        根据当前武器数据更新表单输入框。
+        """
+        # 根据当前武器数据更新表单输入
+        if self.current_weapon:
+            attribute_map = {
+                "命中": "hit",
+                "伤害": "damage",
+                "体质": "constitution",
+                "魔力": "magic",
+                "力量": "strength",
+                "耐力": "endurance",
+                "敏捷": "agility",
+            }
+            for chinese_attr, input_widget in self.attribute_inputs.items():
+                english_attr = attribute_map.get(chinese_attr)
+                if english_attr:
+                    input_widget.text = str(getattr(self.current_weapon, english_attr))
+
+            self.current_weapon.generate_name()  # 更新武器名称
+            self.update_weapon_list_view()
+            self.calculate_equivalent_damage()
 
     def calculate_equivalent_damage(self, faction=None):
         """
@@ -346,8 +332,6 @@ class CalculatorApp(App):
                 self.current_weapon.magic,
             )
 
-            self.current_weapon.generate_name()  # 更新武器名称
-
             # 格式化输出文本
             output = f"门派: {results['门派']}\n"
             output += f"种族: {results['种族']}\n"
@@ -365,6 +349,22 @@ class CalculatorApp(App):
             # 如果未选择门派或武器，显示提示信息
             self.output_text = "请选择门派并输入武器属性进行计算。"
             self.output_label.text = self.output_text
+
+    def update_weapon_list_view(self):
+        """
+        更新武器列表视图。
+        """
+        self.weapon_recycleview.viewclass = "Button"
+        self.weapon_recycleview.data = [
+            {
+                "text": x.name,
+                "font_name": DEFAULT_FONT,
+                "on_release": lambda instance, idx=i: self._on_weapon_item_release(
+                    instance, idx
+                ),
+            }
+            for i, x in enumerate(self.weapon_list)
+        ]
 
 
 if __name__ == "__main__":

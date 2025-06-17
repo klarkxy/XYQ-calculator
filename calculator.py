@@ -64,26 +64,31 @@ class CalculatorApp(App):
             "魔王寨",
             "无底洞",
             "凌波城",
-            "神相",
-            "花果山",
-            "东海渊",
-            "小雷音",
         ]
         self.faction_spinner = Spinner(
-            text="选择门派", values=factions, size_hint=(0.8, 1), font_name=DEFAULT_FONT
+            text="选择门派",
+            values=factions,
+            size_hint=(0.5, None),
+            height=40,
+            font_name=DEFAULT_FONT,
         )
         self.faction_spinner.bind(text=self.on_faction_select)
-        add_button = Button(text="新增武器", size_hint=(0.2, 1), font_name=DEFAULT_FONT)
-        add_button.bind(on_press=self.add_weapon)
-        top_layout.add_widget(self.faction_spinner)
-        top_layout.add_widget(add_button)
-        main_layout.add_widget(top_layout)
+        faction_layout = BoxLayout(
+            orientation="horizontal", size_hint_y=None, height=40
+        )
+        faction_layout.add_widget(self.faction_spinner)
+        main_layout.add_widget(faction_layout)
 
         # Bottom area: List, Form, Output
-        bottom_layout = BoxLayout(orientation="horizontal", size_hint_y=0.9)
+        bottom_layout = BoxLayout(orientation="horizontal", size_hint_y=1)
 
         # Left area: Weapon list
-        left_layout = BoxLayout(orientation="vertical", size_hint_x=0.3)
+        left_layout = BoxLayout(orientation="vertical", size_hint_x=0.3, size_hint_y=1)
+        add_button = Button(
+            text="新增武器", size_hint_y=None, height=40, font_name=DEFAULT_FONT
+        )
+        add_button.bind(on_press=self.add_weapon)
+        left_layout.add_widget(add_button)
         left_layout.add_widget(Label(text="武器列表", font_name=DEFAULT_FONT))
         # Placeholder for RecycleView
         self.weapon_recycleview = RecycleView(
@@ -140,7 +145,10 @@ class CalculatorApp(App):
     def add_weapon(self, instance):
         new_weapon = WeaponData(名称=f"新武器 {len(self.weapon_list) + 1}")
         self.weapon_list.append(new_weapon)
-        self.weapon_recycleview.data = [{"text": x.名称} for x in self.weapon_list]
+        self.weapon_recycleview.viewclass = "Button"
+        self.weapon_recycleview.data = [
+            {"text": x.名称, "font_name": DEFAULT_FONT} for x in self.weapon_list
+        ]
         self.current_weapon = new_weapon
         self.update_form()
         self.calculate_equivalent_damage()

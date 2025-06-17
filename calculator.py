@@ -29,7 +29,6 @@ class WeaponData:
 
     def __init__(
         self,
-        name="新武器",
         hit=0,
         damage=0,
         constitution=0,
@@ -42,7 +41,6 @@ class WeaponData:
         初始化 WeaponData 对象。
 
         Args:
-            name (str): 武器名称。
             hit (int): 命中属性。
             damage (int): 伤害属性。
             constitution (int): 体质属性。
@@ -51,7 +49,6 @@ class WeaponData:
             endurance (int): 耐力属性。
             agility (int): 敏捷属性。
         """
-        self.name = name
         self.hit = hit
         self.damage = damage
         self.constitution = constitution
@@ -59,6 +56,26 @@ class WeaponData:
         self.strength = strength
         self.endurance = endurance
         self.agility = agility
+        self.name = self.generate_name()  # 生成武器名称
+
+    def generate_name(self):
+        """
+        生成武器名称。
+        """
+        attributes = {
+            "体质": self.constitution,
+            "魔力": self.magic,
+            "力量": self.strength,
+            "耐力": self.endurance,
+            "敏捷": self.agility,
+        }
+        name = "命中+" + str(self.hit) + " 伤害+" + str(self.damage) + " "
+        name += " ".join(
+            f"{chinese_attr}{'+' if value > 0 else ''}{value}"
+            for chinese_attr, value in attributes.items()
+            if value != 0
+        )
+        return name
 
 
 class CalculatorApp(App):
@@ -78,6 +95,7 @@ class CalculatorApp(App):
         # 初始化时添加一个默认武器
         self.weapon_list.append(WeaponData())
         self.current_weapon = self.weapon_list[0]
+        self.start_change_weapon = False  # 初始化标志，防止循环触发事件
 
         # 主布局
         main_layout = BoxLayout(orientation="vertical")
@@ -146,7 +164,9 @@ class CalculatorApp(App):
             {
                 "text": x.name,
                 "font_name": DEFAULT_FONT,
-                "on_release": lambda instance, idx=i: self.select_weapon(idx),
+                "on_release": lambda instance, idx=i: self._on_weapon_item_release(
+                    instance, idx
+                ),
             }
             for i, x in enumerate(self.weapon_list)
         ]
@@ -157,32 +177,17 @@ class CalculatorApp(App):
         # 中间区域：属性表单
         middle_layout = BoxLayout(orientation="vertical", size_hint_x=0.4)
 
-        # 添加武器名称输入框
-        name_layout = BoxLayout(size_hint_y=0.1)
-        name_layout.add_widget(
-            Label(text="武器名称", size_hint_x=0.4, font_name=DEFAULT_FONT)
-        )
-        self.name_input = TextInput(
-            multiline=False,
-            size_hint_x=0.6,
-            font_name=DEFAULT_FONT,
-        )
-        # 绑定武器名称输入框文本变化事件
-        self.name_input.bind(text=self.on_name_change)
-        name_layout.add_widget(self.name_input)
-        middle_layout.add_widget(name_layout)
-
         self.attribute_inputs = {}  # 存储属性输入框
         attributes = ["命中", "伤害", "体质", "魔力", "力量", "耐力", "敏捷"]
         for attr in attributes:
             attr_layout = BoxLayout(size_hint_y=0.1)
             attr_layout.add_widget(
-                Label(text=attr, size_hint_x=0.4, font_name=DEFAULT_FONT)
+                Label(text=attr, size_hint_x=0.3, font_name=DEFAULT_FONT)
             )
             text_input = TextInput(
                 input_type="number",
                 multiline=False,
-                size_hint_x=0.6,
+                size_hint_x=0.2,
                 font_name=DEFAULT_FONT,
             )
             # 绑定属性输入框文本变化事件
@@ -206,17 +211,25 @@ class CalculatorApp(App):
 
         return main_layout
 
-    def on_name_change(self, instance, value):
+    def _on_weapon_item_release(self, instance, idx):
         """
-        处理武器名称输入框文本变化事件。
+        处理武器列表项点击事件。
         """
-        if self.current_weapon:
-            self.current_weapon.name = value
-            # 更新 RecycleView 数据以反映名称变化
-            self.weapon_recycleview.data = [
-                {"text": x.name, "font_name": DEFAULT_FONT} for x in self.weapon_list
-            ]
-        self.calculate_equivalent_damage()
+        self.start_change_weapon = True
+        self.select_weapon(idx)
+        self.start_change_weapon = False
+
+    def select_weapon(self, idx):
+        """
+        选择指定索引的武器。
+
+        Args:
+            idx (int): 要选择的武器索引。
+        """
+        if 0 <= idx < len(self.weapon_list):
+            self.current_weapon = self.weapon_list[idx]
+            self.update_form()
+            self.calculate_equivalent_damage()
 
     def on_faction_button_press(self, instance):
         """
@@ -234,12 +247,19 @@ class CalculatorApp(App):
         处理新增武器按钮事件。
         """
         # 创建新的武器数据
-        new_weapon = WeaponData(name=f"新武器 {len(self.weapon_list) + 1}")
+        new_weapon = WeaponData()
         self.weapon_list.append(new_weapon)
         # 更新 RecycleView 数据
         self.weapon_recycleview.viewclass = "Button"
         self.weapon_recycleview.data = [
-            {"text": x.name, "font_name": DEFAULT_FONT} for x in self.weapon_list
+            {
+                "text": x.name,
+                "font_name": DEFAULT_FONT,
+                "on_release": lambda instance, idx=i: self._on_weapon_item_release(
+                    instance, idx
+                ),
+            }
+            for i, x in enumerate(self.weapon_list)
         ]
         # 设置当前武器为新添加的武器
         self.current_weapon = new_weapon
@@ -290,7 +310,6 @@ class CalculatorApp(App):
         """
         # 根据当前武器数据更新表单输入
         if self.current_weapon:
-            self.name_input.text = self.current_weapon.name
             for chinese_attr, input_widget in self.attribute_inputs.items():
                 # 将中文属性名映射到英文变量名以获取属性值
                 english_attr = {
@@ -327,10 +346,11 @@ class CalculatorApp(App):
                 self.current_weapon.magic,
             )
 
+            self.current_weapon.generate_name()  # 更新武器名称
+
             # 格式化输出文本
             output = f"门派: {results['门派']}\n"
             output += f"种族: {results['种族']}\n"
-            output += f"武器: {self.current_weapon.name}\n"
             output += "\n计算结果:\n"
             output += f"  伤害: {results['实际伤害']:.2f}\n"
             output += f"  法伤: {results['实际法伤']:.2f}\n"

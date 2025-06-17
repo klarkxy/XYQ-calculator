@@ -189,6 +189,7 @@ def calculate_all_attributes(
         "实际法伤": actual_spell_damage,
         "固伤": fixed_damage,
     }
+
     return results
 
 
